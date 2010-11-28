@@ -1,7 +1,6 @@
 <h2><%=l(:label_issue_importer)%></h2>
 
-<% form_tag({:action => 'match'}, {:multipart => true}) do %>
-	<%= hidden_field_tag 'project_id', @project.id %>
+<% form_tag({:controller => 'importer', :action => 'match',:project_id => @project}, {:multipart => true}) do %>
   	
 	<p><label><%=l(:label_upload_notice)%></label><br/>
 	<%= file_field_tag 'file', :size => 60%></p>

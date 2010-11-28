@@ -7,6 +7,7 @@ class ImporterController < ApplicationController
   unloadable
   
   before_filter :find_project
+  before_filter :authorize,:except => :result
 
   ISSUE_ATTRS = [:id, :subject, :assigned_to, :fixed_version,
     :author, :description, :category, :priority, :tracker, :status,
@@ -21,12 +22,18 @@ class ImporterController < ApplicationController
     splitter = params[:splitter]
     wrapper = params[:wrapper]
     encoding = params[:encoding]
+
+    if file == nil 
+      flash[:error] = l(:label_file_undefined);
+      redirect_to :action => "index", :project_id => params[:project_id]
+      return
+    end
     
     # save import file
     @original_filename = file.original_filename
     tmpfile = Tempfile.new("redmine_importer")
     if tmpfile
-      tmpfile.write(file.read)
+      tmpfile.write(convert_file(file, encoding))
       tmpfile.close
       tmpfilename = File.basename(tmpfile.path)
       if !$tmpfiles
@@ -48,7 +55,7 @@ class ImporterController < ApplicationController
     i = 0
     @samples = []
     
-    FasterCSV.foreach(tmpfile.path, {:headers=>true, :encoding=>encoding, :quote_char=>wrapper, :col_sep=>splitter}) do |row|
+    FasterCSV.foreach(tmpfile.path, {:headers=>true, :encoding=>"UTF-8", :quote_char=>wrapper, :col_sep=>splitter}) do |row|
       @samples[i] = row
       
       i += 1
@@ -58,13 +65,21 @@ class ImporterController < ApplicationController
     end # do
 
     if @samples.size > 0
-      @headers = convert_headers_encoding(@samples[0].headers, encoding)
+      @headers = @samples[0].headers
     end
-    
+ 
+    @headers.each { |h|
+      if h.blank?
+        flash[:error] = l(:label_header_blank);
+        redirect_to :action => "index", :project_id => params[:project_id]
+        return
+      end
+    }
+
     # fields
     @attrs = Array.new
     ISSUE_ATTRS.each do |attr|
-      @attrs.push([l_has_string?("field_#{attr}".to_sym) ? l("field_#{attr}".to_sym) : attr.to_s.humanize, attr])
+      @attrs.push([l("field_#{attr}".to_sym), attr])
     end
     @project.all_issue_custom_fields.each do |cfield|
       @attrs.push([cfield.name, cfield.name])
@@ -112,7 +127,7 @@ class ImporterController < ApplicationController
     # attrs_map is fields_map's invert
     attrs_map = fields_map.invert
       
-    FasterCSV.foreach(tmpfile.path, {:headers=>true, :encoding=>encoding, :quote_char=>wrapper, :col_sep=>splitter}) do |row|
+    FasterCSV.foreach(tmpfile.path, {:headers=>true, :encoding=>'UTF-8', :quote_char=>wrapper, :col_sep=>splitter}) do |row|
 
       project = Project.find_by_name(row[attrs_map["project"]])
       tracker = Tracker.find_by_name(row[attrs_map["tracker"]])
@@ -236,14 +251,18 @@ class ImporterController < ApplicationController
     
     if @failed_issues.size > 0
       @failed_issues = @failed_issues.sort
-      @headers = convert_headers_encoding(@failed_issues[0][1].headers, encoding)
+      @headers = @failed_issues[0][1].headers
     end
   end
 
 private
 
   def find_project
-    @project = Project.find(params[:project_id])
+    begin
+      @project = Project.find(params[:project_id])
+    rescue ActiveRecord::RecordNotFound
+      render_404
+    end
   end
 
   def convert_headers_encoding(headers, encoding)
@@ -252,5 +271,13 @@ private
     nkf_option = '-Ew' if encoding == 'EUC'
     nkf_option ? headers.map! {|e| NKF.nkf('-m0 -x ' + nkf_option, e)} : headers
   end
+
+  def convert_file(file, encoding)
+    nkf_option = nil
+    nkf_option = '-Sw' if encoding == 'S'
+    nkf_option = '-Ew' if encoding == 'EUC'
+    nkf_option ? NKF.nkf('-m0 -x ' + nkf_option, file.read) : file.read 
+  end
+
 
 end
