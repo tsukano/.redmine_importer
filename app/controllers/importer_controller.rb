@@ -265,12 +265,12 @@ private
     end
   end
 
-  def convert_headers_encoding(headers, encoding)
-    nkf_option = nil
-    nkf_option = '-Sw' if encoding == 'S'
-    nkf_option = '-Ew' if encoding == 'EUC'
-    nkf_option ? headers.map! {|e| NKF.nkf('-m0 -x ' + nkf_option, e)} : headers
-  end
+#  def convert_headers_encoding(headers, encoding)
+#    nkf_option = nil
+#    nkf_option = '-Sw' if encoding == 'S'
+#    nkf_option = '-Ew' if encoding == 'EUC'
+#    nkf_option ? headers.map! {|e| NKF.nkf('-m0 -x ' + nkf_option, e)} : headers
+#  end
 
   def convert_file(file, encoding)
     nkf_option = nil
