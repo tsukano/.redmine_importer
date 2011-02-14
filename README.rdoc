@@ -1,7 +1,7 @@
 = importer
 
-This plugin is based on https://github.com/rchady/redmine_importer/ and
+This plugin is based on below
+https://github.com/akiko-pusu/redmine_importer
+https://github.com/rchady/redmine_importer/
 https://github.com/juno/redmine_importer. 
 Customized for Japanese environment.
-
-

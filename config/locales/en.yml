@@ -36,5 +36,5 @@ en:
   label_file_undefined: "No file is specified."
 
 
-button_submit: "Submit"
-button_save_rules_and_submit: "Save match rules and submit"
+  button_submit: "Submit"
+  button_save_rules_and_submit: "Save match rules and submit"

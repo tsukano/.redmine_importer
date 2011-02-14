@@ -21,7 +21,7 @@ class ImporterController < ApplicationController
     file = params[:file]
     splitter = params[:splitter]
     wrapper = params[:wrapper]
-    encoding = params[:encoding]
+    encoding = encoding = "U"
 
     if file == nil 
       flash[:error] = l(:label_file_undefined);
@@ -33,7 +33,7 @@ class ImporterController < ApplicationController
     @original_filename = file.original_filename
     tmpfile = Tempfile.new("redmine_importer")
     if tmpfile
-      tmpfile.write(convert_file(file, encoding))
+      tmpfile.write(NKF.nkf('-w -Lu',file.read))
       tmpfile.close
       tmpfilename = File.basename(tmpfile.path)
       if !$tmpfiles
@@ -237,7 +237,7 @@ class ImporterController < ApplicationController
       end
 
       if (!issue.save)
-        # 记录错误
+        # ????
         @failed_count += 1
         @failed_issues[@handle_count + 1] = row
       end
