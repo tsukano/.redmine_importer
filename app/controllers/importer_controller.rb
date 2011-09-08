@@ -9,9 +9,10 @@ class ImporterController < ApplicationController
   before_filter :find_project
   before_filter :authorize,:except => :result
 
+#naka
   ISSUE_ATTRS = [:id, :subject, :assigned_to, :fixed_version,
     :author, :description, :category, :priority, :tracker, :status,
-    :start_date, :due_date, :done_ratio, :estimated_hours]
+    :start_date, :due_date, :done_ratio, :estimated_hours, :parent_issue]
   
   def index
   end
@@ -134,9 +135,13 @@ class ImporterController < ApplicationController
       status = IssueStatus.find_by_name(row[attrs_map["status"]])
       author = User.find_by_login(row[attrs_map["author"]])
       priority = Enumeration.find_by_name(row[attrs_map["priority"]])
-      category = IssueCategory.find_by_name(row[attrs_map["category"]])
+#misa
+      #category = IssueCategory.find_by_name(row[attrs_map["category"]])
+      category = IssueCategory.find_by_name_and_project_id(row[attrs_map["category"]],@project.id)
       assigned_to = User.find_by_login(row[attrs_map["assigned_to"]])
-      fixed_version = Version.find_by_name(row[attrs_map["fixed_version"]])
+#misa
+      #fixed_version = Version.find_by_name(row[attrs_map["fixed_version"]])
+      fixed_version = Version.find_by_name_and_project_id(row[attrs_map["fixed_version"]],@project.id)
   
       # new issue or find exists one
       issue = Issue.new
@@ -228,10 +233,24 @@ class ImporterController < ApplicationController
       issue.done_ratio = row[attrs_map["done_ratio"]] || issue.done_ratio
       issue.estimated_hours = row[attrs_map["estimated_hours"]] || issue.estimated_hours
 
+#naka
+      issue.parent_issue_id = row[attrs_map["parent_issue"]] || issue.parent_issue_id
+
       # custom fields
       issue.custom_field_values = issue.available_custom_fields.inject({}) do |h, c|
         if value = row[attrs_map[c.name]]
-          h[c.id] = value
+          # modify start 110907
+          cf_obj = CustomField.find_by_name(c.name)
+          if cf_obj != nil && cf_obj.field_format == 'user'
+            if user_cf = User.find_by_login(value)
+              h[c.id] = user_cf.id.to_s
+            else
+              h[c.id] = User.anonymous.id.to_s
+            end
+          else
+            h[c.id] = value
+          end
+          # modify end 110907
         end
         h
       end
